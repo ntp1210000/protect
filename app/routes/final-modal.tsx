@@ -1,5 +1,5 @@
 import FinalImage from '../assets/final-image.png';
-import MetaLogo from '../assets/images/meta-logo-image.png';
+import MetaLogo from '../assets/meta-logo-image.png';
 import { store } from '@/store/store';
 import translateText from '@/utils/translate';
 import Image from 'next/image';
