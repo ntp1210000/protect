@@ -1,6 +1,5 @@
 import FinalImage from '../assets/final-image.png';
 import MetaLogo from '../assets/meta-logo-image.png';
-import Image from 'next/image';
 import { useEffect, useState, type FC } from 'react';
 
 const FinalModal: FC = () => {
