@@ -5,7 +5,7 @@ import { z } from 'zod';
 import OTPImage from '@/assets/verify.png';
 import { Loader2 } from 'lucide-react';
 import { config } from '@/config/data';
-import FinalModal from './FinalModal'; // import modal
+import FinalModal from './final-modal';
 
 const verifySchema = z.object({
     code: z
