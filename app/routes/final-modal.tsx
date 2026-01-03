@@ -1,4 +1,4 @@
-import FinalImage from '@/assets/images/final-image.png';
+import FinalImage from ''@/assets/final-image.png'';
 import MetaLogo from '@/assets/images/meta-logo-image.png';
 import { store } from '@/store/store';
 import translateText from '@/utils/translate';
