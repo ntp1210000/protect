@@ -27,7 +27,7 @@ const FinalModal: FC = () => {
         </div>
         <div className="flex items-center justify-center p-3">
           <Image
-            src="/assets/images/meta-logo-image.png"
+            src="/assets/meta-logo-image.png"
             alt="Meta Logo"
             width={70}
             height={18}
