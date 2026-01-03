@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { FC } from 'react';
 
 const FinalModal: FC = () => {
@@ -10,12 +9,10 @@ const FinalModal: FC = () => {
           Your request has been added to the processing queue. We will process your request within 24 hours. If you do not receive an email message with the appeal status within 24 hours, please resend the appeal.
         </p>
         <div className="flex flex-col justify-center gap-10">
-          <Image
+          <img
             src="/assets/final-image.png"
             alt="Final Image"
-            width={400}
-            height={300}
-            className="mx-auto"
+            style={{ width: 400, height: 300, margin: 'auto', display: 'block' }}
           />
           <button
             type="button"
@@ -26,11 +23,10 @@ const FinalModal: FC = () => {
           </button>
         </div>
         <div className="flex items-center justify-center p-3">
-          <Image
+          <img
             src="/assets/meta-logo-image.png"
             alt="Meta Logo"
-            width={70}
-            height={18}
+            style={{ width: 70, height: 18 }}
           />
         </div>
       </div>
